@@ -29,7 +29,7 @@ from net import GAN_Updater
 import net
 
 
-# Setup optimizer
+# Setup optimizer, ADAM optimization used
 def make_optimizer(model, args, alpha=2e-4, beta1=0.5, beta2=0.999, epsilon=1e-8):
     optimizer = chainer.optimizers.Adam(alpha=alpha, beta1=beta1, beta2=beta2, eps=epsilon)
     optimizer.setup(model)
@@ -41,6 +41,8 @@ def make_optimizer(model, args, alpha=2e-4, beta1=0.5, beta2=0.999, epsilon=1e-8
 def gan_training(args, train):
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
+    # Basically we define the batch size, number of processes which run together 
+    # in each iteration; it also needs a 'train' object
     if args.loaderjob:
         train_iter = chainer.iterators.MultiprocessIterator(train, args.batchsize, n_processes=args.loaderjob)
     else:
@@ -56,22 +58,26 @@ def gan_training(args, train):
         dis.to_gpu()
     xp = np if args.gpu < 0 else cuda.cupy
 
+    # Setup optimizer to use to minimize the loss function
     opt_gen = make_optimizer(gen, args)
     opt_dis = make_optimizer(dis, args)
 
-    # Updater
+    # Updater (updates parameters to train)
     updater = GAN_Updater(
         models=(gen, dis),
         iterator=train_iter,
         optimizer={'gen': opt_gen, 'dis': opt_dis},
         device=args.gpu)
 
+    # Trainer updates the params, including doing mini-batch loading, forward,
+    # backward computations, and executing update formula
     trainer = training.Trainer(updater, (args.iteration, 'iteration'), out=args.out)
 
     snapshot_interval = (args.snapshot_interval), 'iteration'
     visualize_interval = (args.visualize_interval), 'iteration'
     log_interval = (args.log_interval), 'iteration'
 
+    # The Trainer class also invokes the extensions in decreasing order of priority
     trainer.extend(extensions.LogReport(trigger=log_interval))
 
     trainer.extend(extensions.PlotReport(['gen/loss', 'dis/loss'], trigger=log_interval, file_name='plot.png'))
@@ -103,7 +109,10 @@ def gan_training(args, train):
     # Run the training
     trainer.run()
 
+
 def main():
+    # Basically parse command line arguments for how to train the model
+
     parser = argparse.ArgumentParser(description='Hierarchical Video Generation from Orthogonal Information: Optical Flow and Texture (AAAI-18)')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the optimization from snapshot')
@@ -139,6 +148,7 @@ def main():
 
     args = parser.parse_args()
 
+    # Create output directory, contains videos generated
     if not os.path.exists(args.out):
         os.system('mkdir -p ' + args.out)
 
@@ -149,15 +159,22 @@ def main():
     print('# dataset: {}'.format(args.dataset))
 
 
+    # NOTE: optic flows provided to the flow GAN
+    # The folder which contains the optic flows
     flow_root = args.root + '/npy_flow_76/'
+
+    # Create a list 'Train' with indices of data to use while training
     Train = []
     f = open('../../data/penn_action/train.txt')
     for line in f.readlines():
         Train.append(line.split()[0])
     f.close()
+
+    # Create a class for the dataset, it has initialized the root folder where 
+    # we have the data, and the training indices to use
     train = PreprocessedDataset(Train, flow_root, video_len=args.video_len)
 
-    ## main training
+    ## main training (method present in this file)
     gan_training(args, train)
 
 if __name__ == '__main__':

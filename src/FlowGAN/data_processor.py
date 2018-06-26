@@ -7,6 +7,8 @@ import numpy as np
 import scipy.misc
 import os
 
+# Implements a default interface which is used eventually by the Updater to get 
+# the training samples
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
     def __init__(self, dataset, root_dir, crop_size=(64, 64), video_len=32):
         self.dataset = dataset
@@ -16,8 +18,10 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         self.video_len = video_len
         self.stride = self.video_len//2
 
+
     def __len__(self):
         return len(self.dataset)
+
 
     def preprocess_img(self, flow, flipcrop=True):
         crop_x = self.crop_x
@@ -43,6 +47,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
             flow = dst_flow
         flow = flow.astype(np.float32) * (2 / 255.) - 1.
         return flow
+
 
     def get_example(self, i, train=True):
         while 1:

@@ -12,10 +12,15 @@ import chainer.links as L
 from chainer import Variable
 from custom_opt import l1_penalty
 
+
+# chainer.Chain is used to create a chain, i.e. sequence of layers?
 class Generator(chainer.Chain):
     def __init__(self, video_len = 32):
+        # used as the seed for the weights initialization
         w = chainer.initializers.Normal(0.02)
         self.video_len = video_len
+        
+        # Bascially define all the layers of the generator
         super(Generator, self).__init__(
             l0=L.Linear(100, 4*4*512*(self.video_len//16), initialW=w),
             dc1=L.DeconvolutionND(3, 512, 256, 4, 2, 1, initialW=w),
@@ -52,6 +57,7 @@ class Generator(chainer.Chain):
         else:
             return x, h_fore, h_mask
 
+
 class Discriminator(chainer.Chain):
 
     def __init__(self):
@@ -74,6 +80,9 @@ class Discriminator(chainer.Chain):
         h = F.leaky_relu(self.bn3(self.c3(h)))
         return self.l4(h)
 
+
+# chainer.training is used to abstract the training of an NN
+# StandardUpdater is the class which updates the parameters to train
 class GAN_Updater(chainer.training.StandardUpdater):
     def __init__(self, *args, **kwargs):
         self.generator, self.discriminator = kwargs.pop('models')
