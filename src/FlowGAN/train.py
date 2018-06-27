@@ -172,6 +172,7 @@ def main():
 
     # Create a class for the dataset, it has initialized the root folder where 
     # we have the data, and the training indices to use
+    # video_len => time length of generated video or size of video frame? 
     train = PreprocessedDataset(Train, flow_root, video_len=args.video_len)
 
     ## main training (method present in this file)
