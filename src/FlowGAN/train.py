@@ -165,7 +165,7 @@ def main():
 
     # Create a list 'Train' with indices of data to use while training
     Train = []
-    f = open('../../data/penn_action/train.txt')
+    f = open('../../Data/penn_action/train.txt')
     for line in f.readlines():
         Train.append(line.split()[0])
     f.close()
